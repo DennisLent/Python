@@ -89,4 +89,4 @@ class Gantt:
 
 
 gantt = Gantt()
-gantt.read("Example.xlsx")
+gantt.read("Example_v2.xlsx")
