@@ -161,7 +161,7 @@ class Gantt:
 
 
         plt.yticks(y_axis, y_values)
-        plt.xticks(Gantt.All_days)
+        plt.xticks(Gantt.All_days, rotation=90)
         plt.grid(color="grey", linestyle="--", alpha=0.3)
         plt.show()
 
