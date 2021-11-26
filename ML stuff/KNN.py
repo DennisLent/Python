@@ -15,11 +15,27 @@ def generate_random_data(num_sets, num_points, low=-50, high=50):
         data_sets.append(data)
     return data_sets
 
+def generate_random_data_std(num_sets, num_points, low=-50, high=50):
+    """New random data generator that takes a center and creates noise around it"""
+    data_sets = []
+    for i in range(num_sets):
+        x_center, y_center = random.randrange(low, 0), random.randrange(0, high)
+        x_cords = np.random.normal(x_center, 2, num_points)
+        y_cords = np.random.normal(y_center, 2, num_points)
+        data = list(zip(x_cords, y_cords))
+        data_sets.append(data)
+    return data_sets
+
+
 def graph_data(data_set):
     """graph data sets"""
+    i = 0
     for sub_set in data_set:
         x, y = zip(*sub_set)
-        plt.scatter(x,y)
+        plt.scatter(x,y, label=f"Set {i}")
+        i += 1
+    plt.legend()
+    plt.grid(color="grey", alpha=0.4)
     plt.show()
 
 def split_data(data_set):
@@ -45,7 +61,7 @@ def distance(tup1, tup2):
     x2, y2 = tup2
     return np.sqrt((x2-x1)**2 + (y2-y1)**2)
 
-def KNN(data, point, k):
+def NN(data, point, k):
     """Find k points that are closest to given point in the data"""
     if k > len(data):
         raise ValueError("k has to be smaller than length of data set")
@@ -64,12 +80,12 @@ def KNN(data, point, k):
     return closest
 
 
-def test_KNN(train, c_train, test, c_test, k):
+def KNN(train, c_train, test, c_test, k):
     """Test how well the KNN works with guessing"""
     i = 0
     true = 0
     for test_point in test:
-        neighbors = KNN(train.copy(), test_point, k)
+        neighbors = NN(train.copy(), test_point, k)
         classes = []
         for neigh in neighbors:
             ind = train.index(neigh)
@@ -83,25 +99,24 @@ def test_KNN(train, c_train, test, c_test, k):
     return correct
 
 
-
-
-data = generate_random_data(5, 20)
-graph_data(data)
-train, c_train, test, c_test = split_data(data)
-
-
 def Cross_fold_test(k_range, data):
     """Determine best value of k when taking 70% of data to train"""
     scores = []
     for k in k_range:
         train, c_train, test, c_test = split_data(data)
-        score = test_KNN(train, c_train, test, c_test, k)
-        print(f"k value of {k} scored {score*100}%")
-        scores.append(score)
+        score = KNN(train, c_train, test, c_test, k)
+        print(f"k value of {k} scored {round(score*100, 4)}%")
+        scores.append(round(score*100, 4))
+    plt.xticks(k_range)
+    plt.yticks(scores)
+    plt.grid(axis="x", color="grey", alpha=0.4)
     plt.plot(k_range, scores)
     plt.show()
 
-
+#data(num_sets, num_points, low, high)
+data = generate_random_data_std(7, 50, -20, 20)
+graph_data(data)
+train, c_train, test, c_test = split_data(data)
 Cross_fold_test(range(1,15), data)
 
 
