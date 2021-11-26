@@ -2,6 +2,12 @@ import numpy as np
 from statistics import mode
 import matplotlib.pyplot as plt
 import random
+from numba import jit
+from numba.core.errors import NumbaDeprecationWarning, NumbaPendingDeprecationWarning
+import warnings
+
+warnings.simplefilter('ignore', category=NumbaDeprecationWarning)
+warnings.simplefilter('ignore', category=NumbaPendingDeprecationWarning)
 
 def generate_random_data(num_sets, num_points, low=-50, high=50):
     """Make random data sets"""
@@ -15,13 +21,14 @@ def generate_random_data(num_sets, num_points, low=-50, high=50):
         data_sets.append(data)
     return data_sets
 
-def generate_random_data_std(num_sets, num_points, low=-50, high=50):
+@jit(nopython=True)
+def generate_random_data_std(num_sets, num_points, std=2, low=-50, high=50):
     """New random data generator that takes a center and creates noise around it"""
     data_sets = []
     for i in range(num_sets):
         x_center, y_center = random.randrange(low, 0), random.randrange(0, high)
-        x_cords = np.random.normal(x_center, 2, num_points)
-        y_cords = np.random.normal(y_center, 2, num_points)
+        x_cords = np.random.normal(x_center, std, num_points)
+        y_cords = np.random.normal(y_center, std, num_points)
         data = list(zip(x_cords, y_cords))
         data_sets.append(data)
     return data_sets
@@ -34,7 +41,7 @@ def graph_data(data_set):
         x, y = zip(*sub_set)
         plt.scatter(x,y, label=f"Set {i}")
         i += 1
-    plt.legend()
+    plt.legend(bbox_to_anchor=(1, 1))
     plt.grid(color="grey", alpha=0.4)
     plt.show()
 
@@ -55,12 +62,14 @@ def split_data(data_set):
         classification_test += f"{index}"*(len(data_set[0])-n)
     return training_data, classification_train, testing_data, classification_test
 
+@jit(nopython=True)
 def distance(tup1, tup2):
     """Euclidian distance between two points"""
     x1, y1 = tup1
     x2, y2 = tup2
     return np.sqrt((x2-x1)**2 + (y2-y1)**2)
 
+@jit(nopython=True)
 def NN(data, point, k):
     """Find k points that are closest to given point in the data"""
     if k > len(data):
@@ -72,7 +81,8 @@ def NN(data, point, k):
         smallest = None
         for cord in data:
             #print(distance(cord, point))
-            if distance(cord, point) < sml:
+            dis = distance(cord, point)
+            if dis < sml:
                 sml = distance(cord, point)
                 smallest = cord
         closest.append(smallest)
@@ -114,7 +124,7 @@ def Cross_fold_test(k_range, data):
     plt.show()
 
 #data(num_sets, num_points, low, high)
-data = generate_random_data_std(7, 50, -20, 20)
+data = generate_random_data_std(10, 20, 2, -50, 50)
 graph_data(data)
 train, c_train, test, c_test = split_data(data)
 Cross_fold_test(range(1,15), data)
