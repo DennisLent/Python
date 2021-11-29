@@ -2,3 +2,4 @@
 - Gantt Chart
 - World generation
 - something with ML
+- Natural language processing (NLP)
