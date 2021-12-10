@@ -200,7 +200,7 @@ class Gantt:
 
 gantt = Gantt()
 gantt.read("Example.xlsx")
-print(gantt.Tasks)
+#print(gantt.Tasks)
 gantt.assign_colors()
 print(gantt.Color_person)
 print(Gantt.All_days)
