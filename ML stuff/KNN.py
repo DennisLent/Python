@@ -124,7 +124,7 @@ def Cross_fold_test(k_range, data):
     plt.show()
 
 #data(num_sets, num_points, low, high)
-data = generate_random_data_std(10, 20, 2, -50, 50)
+data = generate_random_data_std(10, 50, 2, -50, 50)
 graph_data(data)
 train, c_train, test, c_test = split_data(data)
 Cross_fold_test(range(1,15), data)
