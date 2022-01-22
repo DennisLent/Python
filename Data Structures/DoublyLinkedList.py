@@ -31,6 +31,15 @@ class Node:
 
     data = property(get_data, set_data)
 
+    def __lt__(self, other):
+        return self.data < other.data
+
+    def __gt__(self, other):
+        return self.data > other.data
+
+    def __eq__(self, other):
+        return self.data == other.data
+
 
 class DoublyLinkedList:
     """
@@ -49,6 +58,12 @@ class DoublyLinkedList:
             return_string += f"-{node}"
             node = node.next
         return return_string + "|"
+
+    def __min__(self):
+        return self.smallest()
+
+    def __max__(self):
+        return self.greatest()
 
     def get_first(self):
         return self.__head
@@ -73,6 +88,57 @@ class DoublyLinkedList:
             self.__tail = node
             self.__size += 1
 
+    def __iter__(self):
+        self.__current = self.get_first()
+        return self
+
+    def __next__(self):
+        if self.__current is None:
+            raise StopIteration()
+
+        result = self.__current
+        self.__current = self.__current.next
+        return result
+
+    def search(self, key):
+        result = None
+        for node in self:
+            if key == node.data:
+                result = node
+        return result
+
+    def remove(self, key):
+        node = self.search(key)
+        if node is not None:
+            prev_node = node.prev
+            next_node = node.next
+
+            if prev_node is not None:
+                prev_node.next = next_node
+            else:
+                self.__head = next_node
+
+            if next_node is not None:
+                next_node.prev = prev_node
+            else:
+                self.__tail = prev_node
+
+        self.__size -= 1
+
+    def smallest(self):
+        sml = self.get_first()
+        for item in self:
+            if item < sml:
+                sml = item
+        return sml.data
+
+    def greatest(self):
+        grt = self.get_first()
+        for item in self:
+            if item > grt:
+                grt = item
+        return grt.data
+
 
 
 
@@ -82,11 +148,19 @@ class DoublyLinkedList:
 my_list = DoublyLinkedList()
 print(f"my list: {str(my_list)}")
 print(f"list empty? {my_list.empty()}")
-for num in [1,2,3,4,5,6]:
+for num in [i for i in range(0, 100, 7)]:
     my_list.add(num)
 
 print(f"my list: {str(my_list)}")
 print(f"my list is {my_list.size()} Nodes long")
-print(my_list.get_first())
-print(my_list.get_last().prev)
+
+for num in [21, 42, 63, 77, "x", None]:
+    my_list.remove(num)
+
+print(f"my list after removing: {str(my_list)}")
+
+print(f"smallest: {min(my_list)}")
+
+print(f"greatest: {max(my_list)}")
+
 
