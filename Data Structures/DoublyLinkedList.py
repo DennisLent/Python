@@ -59,6 +59,9 @@ class DoublyLinkedList:
             node = node.next
         return return_string + "|"
 
+    def __len__(self):
+        return self.__size
+
     def __min__(self):
         return self.smallest()
 
@@ -123,7 +126,7 @@ class DoublyLinkedList:
             else:
                 self.__tail = prev_node
 
-        self.__size -= 1
+            self.__size -= 1
 
     def smallest(self):
         sml = self.get_first()
@@ -162,5 +165,7 @@ print(f"my list after removing: {str(my_list)}")
 print(f"smallest: {min(my_list)}")
 
 print(f"greatest: {max(my_list)}")
+
+print(f"my list is {len(my_list)} Nodes long")
 
 
