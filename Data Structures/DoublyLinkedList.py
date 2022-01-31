@@ -144,28 +144,3 @@ class DoublyLinkedList:
 
 
 
-
-
-
-
-my_list = DoublyLinkedList()
-print(f"my list: {str(my_list)}")
-print(f"list empty? {my_list.empty()}")
-for num in [i for i in range(0, 100, 7)]:
-    my_list.add(num)
-
-print(f"my list: {str(my_list)}")
-print(f"my list is {my_list.size()} Nodes long")
-
-for num in [21, 42, 63, 77, "x", None]:
-    my_list.remove(num)
-
-print(f"my list after removing: {str(my_list)}")
-
-print(f"smallest: {min(my_list)}")
-
-print(f"greatest: {max(my_list)}")
-
-print(f"my list is {len(my_list)} Nodes long")
-
-
