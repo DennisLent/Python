@@ -1,208 +1,284 @@
-import numpy as np
+from datetime import datetime, timedelta
+
 import pandas as pd
+
+from DataClasses import Task, Phase, Deadline
+
 import matplotlib.pyplot as plt
-import matplotlib.dates
-from datetime import date
-import datetime
-
-"""MAKE A GANTT CHART: SUPPORTS UP TO 10 INDIVIDUALS"""
-
-class Task:
-    def __init__(self, Name, Asignee, Start, End):
-        self.Name = Name
-        self.Assignee = Asignee
-        self.Start = Start
-        self.End = End
-
-    def __str__(self):
-        return f"{self.Assignee}: {self.Name}. {self.Start} --> {self.End}"
-
-class Phase:
-    def __init__(self, Name, Start, End):
-        self.Name = Name
-        self.Start = Start
-        self.End = End
-
-    def __str__(self):
-        return f"{self.Name}: {self.Start} --> {self.End}"
-
-class Deliv:
-    def __init__(self, Name, Date):
-        self.Name = Name
-        self.Date = Date
-
-    def __str__(self):
-        return f"{self.Name} | {self.Date}"
 
 
-class Gantt:
-    Tasks = []
-    Individuals = set()
-    Color_person = []
-    num_tasks = None
-    All_days = set()
-    Phases = []
-    Delivs = []
+# datetime.fromisoformat('yyyy-mm-dd')
 
+class GanttChart:
+    """
+    Generate a visualization of a Gantt Chart based on the Excel Document
+    """
 
     @staticmethod
-    def read(filename):
-        df = pd.read_excel(filename)
-        #print(df)
+    def read_excel(file):
+        """
+        Static method to read the Excel file with phases, tasks, sub-tasks and deadlines
+        :param file: Excel file in correct format
+        :return: ordered_events: list of all events in order
+        """
+        def _date_parser(date):
+            """
+            Function to parse dates from the excel and convert to readable format for datetime module
+            :param date: string in format DD.MM.YY
+            :return: string in format YYYY-MM-DD
+            """
+            day, month, year = date.split(".")
+            year = "20" + year
+            return f"{year}-{month}-{day}"
 
-        """Get phases and add to internal list"""
-        Phases = df.loc[df["Task Name"] == "Phase"]
-        i = 1
-        ind_phases = []
-        for index, row in Phases.iterrows():
-            p = Phase(f"{row[0]} {i}", date.fromisoformat(str(row[2]).split(" ")[0]), date.fromisoformat(str(row[3]).split(" ")[0]))
-            ind_phases.append(index)
-            Gantt.Phases.append(p)
-            i += 1
+        def _make_phase(_line):
+            """
+            Function to make phase object
+            :param _line: col1: name | col3: start | col4: end
+            :return: Phase object
+            """
+            name = _line["col1"].split("-")[1]
+            start = datetime.fromisoformat(_date_parser(_line["col3"]))
+            end = datetime.fromisoformat(_date_parser(_line["col4"])) + timedelta(hours=18)
+            return Phase(name, start, end)
 
-        df = df.drop(ind_phases)
+        def _make_deadline(_line):
+            """
+            Function to make deadline object
+            :param _line: col1: name | col4: end
+            :return: Deadline object
+            """
+            name = _line["col1"].split("-")[1]
+            end = datetime.fromisoformat(_date_parser(_line["col4"])) + timedelta(hours=18)
+            return Deadline(name, end)
 
-        """Get Deliverables and add to internal list"""
-        Delivs = df.loc[df["Task Name"] == "Deliverable"]
-        ind_delivs = []
-        for index, row in Delivs.iterrows():
-            d = Deliv(row[1], date.fromisoformat(str(row[3]).split(" ")[0]))
-            Gantt.Delivs.append(d)
-            ind_delivs.append(index)
-
-        df = df.drop(ind_delivs)
-
-        #print(df)
-
-        """Get tasks and add to internal list"""
-        Names = [x for x in df["Task Name"]]
-        Assignees = [list(x.split(",")) for x in df["Assignee"]]
-        for lst in Assignees:
-            for x in lst:
-                Gantt.Individuals.add(x.strip())
-        Start = [date.fromisoformat(str(x).split(" ")[0]) for x in df["Start date"]]
-        Gantt.All_days.update(Start)
-        End = [date.fromisoformat(str(x).split(" ")[0]) for x in df["End date"]]
-        Gantt.All_days.update(End)
-        Gantt.All_days = sorted(Gantt.All_days)
-
-        """Check if a task is a single day"""
-        for i in range(len(Names)):
-            if Start[i] == End[i]:
-                End[i] += datetime.timedelta(days = 1)
-
-            """Add tasks to the internal list"""
-            task = Task(Names[i], Assignees[i], Start[i], End[i])
-            Gantt.Tasks.append(task)
-
-    """Give each person a color"""
-    def assign_colors(self):
-        if len(Gantt.Individuals) > 10:
-            raise ValueError("Too many people in the document: only up to 10 people supported")
-        cols = ["red", "blue", "green", "purple", "yellow", "cyan", "orange", "navy", "lime", "magenta"]
-        people_numbers = enumerate(Gantt.Individuals)
-        for person in people_numbers:
-            Gantt.Color_person.append((person[1], cols[person[0]]))
-
-    """Graph the phases with task and deliverables in between"""
-    def graph(self):
-        i = 1000
-        y_axis = [] #i values (heights)
-        y_values = [] #name of the tasks
-
-        phase_to_remove = []
-        for phase in Gantt.Phases:
-            plt.plot([phase.Start, phase.End], [i,i], lw=2, color="grey")
-            y_axis.append(i)
-            y_values.append(phase.Name)
-            i -= 10
-            phase_to_remove.append(phase)
-
-            task_to_remove = []
-            for task in Gantt.Tasks:
-
-                if task.End <= phase.End:
-
-                    if len(task.Assignee) > 1:
-                        i_init = i
-                        for person in task.Assignee:
-                            index = list(Gantt.Individuals).index(person.strip())
-                            cp = Gantt.Color_person[index][1]
-                            plt.plot([task.Start, task.End], [i, i], lw=3, color=cp, label=person.strip())
-                            i -= 1
-                        mid = (i_init + i) / 2
-                        y_axis.append(mid)
-                        y_values.append(task.Name)
-                        task_to_remove.append(task)
-
-                    else:
-                        person = task.Assignee[0]
-                        index = list(Gantt.Individuals).index(person.strip())
-                        cp = Gantt.Color_person[index][1]
-                        plt.plot([task.Start, task.End], [i, i], lw=3, color=cp, label=person.strip())
-                        y_axis.append(i)
-                        y_values.append(task.Name)
-                        task_to_remove.append(task)
-                    i -= 5
-            for t in task_to_remove:
-                Gantt.Tasks.remove(t)
-
-
-            for deliv in Gantt.Delivs:
-                deliv_to_remove = []
-                if deliv.Date <= phase.End:
-                    plt.scatter(deliv.Date, i, marker="o", color="deeppink", s=20)
-                    y_axis.append(i)
-                    y_values.append(deliv.Name)
-                    deliv_to_remove.append(deliv)
-                    i -= 5
-                for deliv in deliv_to_remove:
-                    Gantt.Delivs.remove(deliv)
-
-
-        plt.yticks(y_axis, y_values)
-        plt.xticks(Gantt.All_days, rotation=90)
-        plt.grid(color="grey", linestyle="--", alpha=0.3)
-        plt.show()
-
-
-""" 
-        y_axis = []
-        for phase in Gantt.Phases:
-            plt.plot([phase.Start, phase.End], [i, i], lw=2, color="grey")
-        for task in Gantt.Tasks:
-            if len(task.Assignee) > 1:
-                i_init = i
-                for person in task.Assignee:
-                    index = list(Gantt.Individuals).index(person.strip())
-                    cp = Gantt.Color_person[index][1]
-                    plt.plot([task.Start, task.End], [i, i], lw=3, color=cp, label=person.strip())
-                    i -= 1
-                mid = (i_init + i)//2
-                y_axis.append(mid)
+        def _make_task(_line):
+            """
+            Function to make tasks and subtasks
+            :param _line: col1: name | col2: assignee | col3: start | col4: end
+            :return: Task object
+            """
+            if _line["col2"]:
+                # has assigned people -> has time constraint
+                if "s-" in _line["col1"]:
+                    name = _line["col1"].split("-")[1]
+                else:
+                    name = _line["col1"]
+                assignee = _line["col2"].split(",")
+                start = datetime.fromisoformat(_date_parser(_line["col3"]))
+                end = datetime.fromisoformat(_date_parser(_line["col4"])) + timedelta(hours=18)
+                return Task(name, assignee, start, end)
             else:
-                person = task.Assignee[0]
-                index = list(Gantt.Individuals).index(person.strip())
-                cp = Gantt.Color_person[index][1]
-                plt.plot([task.Start, task.End], [i,i], lw=3, color=cp, label=person.strip())
-                y_axis.append(i)
-            i -= 5
-        y_values = [task.Name for task in Gantt.Tasks]
-        #print(f"y_axis: {y_axis}, y_values: {y_values}")
-        plt.yticks(y_axis, y_values)
-        plt.grid(axis="x", color="grey", linestyle="--")
-        #plt.legend()
+                name = line["col1"]
+                return Task(name)
+
+        ordered_events = []
+        df = pd.read_excel(file, na_filter=False)
+        for num, line in df.iterrows():
+
+            # print(line["col1"], line["col2"], line["col3"], line["col4"])
+
+            if "p-" in line["col1"]:
+                # print("phase")
+                ordered_events.append(_make_phase(line))
+
+            elif "d-" in line["col1"]:
+                # print("deadline")
+                ordered_events.append(_make_deadline(line))
+
+            elif "s-" in line["col1"]:
+                # print("subtask")
+                subtask = _make_task(line)
+
+                def _add_to_furthest_task(task, _subtask):
+                    """
+                    Function to recursively find the lowest subtask
+                    :param task: current task being checked
+                    :return: None
+                    """
+                    if task.sub is None:
+                        task.sub = _subtask
+                    else:
+                        _add_to_furthest_task(task.sub, _subtask)
+
+                _add_to_furthest_task(ordered_events[-1], subtask)
+
+            else:
+                # print("task")
+                ordered_events.append(_make_task(line))
+
+        for item in ordered_events:
+            if type(item) == Task:
+                if item.sub is not None:
+                    item.update_dates()
+
+        return ordered_events
+
+    def __init__(self, file, name=None):
+        """
+        Initlializer for Gantt Chart
+        :param file: Excel file in correct format
+        :param name: (optinal) name of the Gantt Chart
+        """
+
+        def _find_people(events):
+            """
+            Function to find how many people are involved in the activites
+            :param events: list of all events occuring in the Gantt Chart
+            :return: people: set of all people
+            """
+            people = set()
+            for item in events:
+                if type(item) == Task:
+                    if item.assignee is not None:
+                        for person in item.assignee:
+                            if person != "all":
+                                people.add(person)
+            return people
+
+        def _assign_colors(people):
+            """
+            Function to create dictionary and assign each person a color
+            :param people:
+            :return:
+            """
+            color_list = ["blue", "orange", "brown", "purple", "lime", "navy", "yellow", "green", "pink", "magenta"]
+            color_dict = dict(zip(people, color_list))
+            return color_dict
+
+        self.events = self.read_excel(file)
+
+        self.people = _find_people(self.events)
+
+        self.color_dict = _assign_colors(self.people)
+
+        self.name = name
+
+        self.x_ticks = []
+        self.x_labels = []
+        self.y_ticks = []
+        self.y_labels = []
+
+    def show(self):
+
+        def _plot_single_task(_task, _color_dict, _height):
+            """
+            Function for plotting a single task (no subtasks)
+            :param _task: Task
+            :param _color_dict: color dictionary (object from Gantt)
+            :param _height: height at which line is drawn
+            :return: Pyplot object
+            """
+            for person in _task.assignee:
+                if person != "all":
+                    plt.plot([_task.start, _task.end], [_height, _height], color=_color_dict[person])
+                    _height -= 1
+                else:
+                    for keys, vals in _color_dict.items():
+                        plt.plot([_task.start, _task.end], [_height, _height], color=vals)
+                        _height -= 1
+
+            self.y_ticks.append(_height)
+            self.y_labels.append(_task.name)
+            self.x_ticks.append(_task.start)
+            self.x_ticks.append(_task.end)
+
+            return _height
+
+        def _plot_multi_task(_task, _color_dict, _height):
+            """
+            Function for plotting a multi task (task with subtask(s))
+            :param _task: Task
+            :param _color_dict: color dictionary (object from Gantt)
+            :param _height: height at which line is drawn
+            :return: Pyplot object
+            """
+            if not _task.assignee:
+                # task does not have assignee -> plot time overview of task
+                plt.plot([_task.start, _task.end], [_height, _height], color="cyan", alpha=0.5)
+                self.y_ticks.append(height)
+                self.y_labels.append(_task.name)
+                self.x_ticks.append(_task.start)
+                self.x_ticks.append(_task.end)
+
+                _height -= 5
+            else:
+                # task does have assignee
+                _plot_single_task(_task, _color_dict, _height)
+                _height -= 5
+
+            if _task.sub is not None:
+                # if there are more tasks recursively plot
+                _height = _plot_multi_task(_task.sub, _color_dict, _height)
+                return _height
+
+            else:
+                # no more tasks end
+                return _height
+
+        def _make_legend(x_max, people, color_dict):
+            """
+            Function to make a legend of the assigned people
+            :param x_max: maximum date
+            :param people: people list from Gantt Object
+            :param color_dict: color_dictionary from Gantt Object
+            :return: Pyplot Object
+            """
+            for person in people:
+                plt.plot([x_max, x_max+timedelta(hours=1)], [height, height],
+                         color=color_dict[person], label=f"{person}")
+
+        # Main plotting loop
+        height = 0
+        for item in self.events:
+
+            if type(item) == Phase:
+                # phase is plotted first as it is the overview
+                plt.plot([item.start, item.end], [height, height], color="grey", alpha=0.8)
+                self.y_ticks.append(height)
+                self.y_labels.append(item.name)
+                self.x_ticks.append(item.start)
+                self.x_ticks.append(item.end)
+
+            if type(item) == Deadline:
+                # deadline is plotted second as it sets the end
+                plt.scatter(item.end, height, 15, c="red")
+                self.y_ticks.append(height)
+                self.y_labels.append(item.name)
+                self.x_ticks.append(item.end)
+
+            if type(item) == Task:
+                # tasks are plotted last
+                if item.sub is None:
+                    height = _plot_single_task(item, self.color_dict, height)
+
+                else:
+                    height = _plot_multi_task(item, self.color_dict, height)
+
+            height -= 5
+
+        self.x_ticks = list(set(sorted(self.x_ticks)))
+
+        plt.yticks(self.y_ticks, self.y_labels)
+        plt.xticks(self.x_ticks)
+        plt.xticks(rotation=90)
+        plt.grid(alpha=0.4)
+
+        left, right = sorted(self.x_ticks)[0], sorted(self.x_ticks)[-1]
+
+        # print(f"left={left}, right={right}")
+
+        _make_legend(right+timedelta(hours=5), self.people, self.color_dict)
+        plt.xlim(left-timedelta(hours=4), right+timedelta(hours=4))
+        plt.legend()
+
+        if self.name is None:
+            plt.title("My Gantt Chart")
+        else:
+            plt.title(self.name)
+
         plt.show()
-"""
 
 
-"""TEST"""
-
-gantt = Gantt()
-gantt.read("Example.xlsx")
-#print(gantt.Tasks)
-gantt.assign_colors()
-print(gantt.Color_person)
-print(Gantt.All_days)
-gantt.graph()
-
+if __name__ == "__main__":
+    pass

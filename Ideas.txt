@@ -3,3 +3,4 @@
 - World generation
 - something with ML
 - Natural language processing (NLP)
+- make .exe using pyinstaller and nsis

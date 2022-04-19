@@ -1,3 +1,6 @@
+import random
+import sys
+
 def Merge_sort(lst):
 
     def merge(left, right):
